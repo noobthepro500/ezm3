@@ -2,15 +2,14 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Bouncing Ball in a Spinning Hexagon</title>
+    <title>Bouncier Ball in a Spinning Hexagon</title>
     <style>
-      /* Basic reset and full-screen canvas */
+      /* Basic reset and full-screen canvas styling */
       body {
         margin: 0;
         overflow: hidden;
         background-color: #222;
       }
-
       canvas {
         display: block;
       }
@@ -19,11 +18,11 @@
   <body>
     <canvas id="canvas"></canvas>
     <script>
-      // Get the canvas and context
+      // Get the canvas element and set its context.
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Set canvas to full screen
+      // Function to resize the canvas to full screen.
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -31,26 +30,27 @@
       resizeCanvas();
       window.addEventListener('resize', resizeCanvas);
 
-      // Hexagon properties
-      const hexRadius = 250;         // Radius of the hexagon's circumscribed circle 
-      let hexRotation = 0;           // Current rotation angle in radians
-      const hexRotationSpeed = 0.01; // Rotation speed (radians per frame)
+      // Hexagon properties.
+      const hexRadius = 250;         // Radius of the hexagon's circumscribed circle.
+      let hexRotation = 0;           // Current rotation angle in radians.
+      const hexRotationSpeed = 0.01; // Rotation speed (radians per frame).
 
-      // Ball properties
+      // Ball properties.
       let ball = {
         x: canvas.width / 2,
         y: canvas.height / 2,
         radius: 15,
-        vx: 5,
-        vy: -3,
+        vx: 8,
+        vy: -6,
         mass: 1
       };
 
-      // Environmental properties
+      // Environment properties.
       const gravity = 0.2;
-      const friction = 0.99; // Global friction for motion dampening
+      const restitution = 0.9;      // Restitution factor for a bouncier collision.
+      const environmentFriction = 0.999; // Light friction applied each frame.
 
-      // Utility function to calculate hexagon vertices given a center, radius, and rotation
+      // Returns the vertices of a hexagon based on its center, radius, and rotation.
       function getHexagonVertices(cx, cy, radius, rotation) {
         const vertices = [];
         for (let i = 0; i < 6; i++) {
@@ -62,7 +62,7 @@
         return vertices;
       }
 
-      // Draw the hexagon outline
+      // Draws the hexagon outline.
       function drawHexagon(cx, cy, radius, rotation) {
         const vertices = getHexagonVertices(cx, cy, radius, rotation);
         ctx.beginPath();
@@ -76,79 +76,79 @@
         ctx.stroke();
       }
 
-      // Check for collisions between the ball and each hexagon side
+      // Checks for collisions between the ball and each side of the hexagon.
       function checkHexagonCollisions() {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         const vertices = getHexagonVertices(centerX, centerY, hexRadius, hexRotation);
 
-        // Iterate through each side of the hexagon
+        // Iterate through each side of the hexagon.
         for (let i = 0; i < vertices.length; i++) {
           const start = vertices[i];
           const end = vertices[(i + 1) % vertices.length];
 
-          // Calculate vector of the side
+          // Calculate the vector representing the side.
           const dx = end.x - start.x;
           const dy = end.y - start.y;
           const len = Math.sqrt(dx * dx + dy * dy);
 
-          // Compute the normal of the side (rotating the side vector by 90°)
+          // Compute the normalized normal (perpendicular) to the side.
           let nx = -dy / len;
           let ny = dx / len;
 
-          // Find the distance from the ball's center to the line of the side
+          // Determine the distance from the ball's center to the side.
           const dist = ((ball.x - start.x) * nx + (ball.y - start.y) * ny);
 
-          // Check if the ball is overlapping this line segment
+          // If the ball is overlapping this side...
           if (Math.abs(dist) <= ball.radius) {
-            // Project the ball's center onto the line to determine the closest point
+            // Project the ball's center onto the side (line segment).
             const t = ((ball.x - start.x) * dx + (ball.y - start.y) * dy) / (len * len);
             if (t >= 0 && t <= 1) {
-              // Adjust the ball's position to resolve penetration
+              // Adjust ball position to resolve penetration.
               const penetration = ball.radius - Math.abs(dist);
               ball.x += nx * penetration;
               ball.y += ny * penetration;
 
-              // If the ball's velocity has a component into the wall, reflect it
+              // Check if the ball is moving toward the wall.
               const velocityDotNormal = ball.vx * nx + ball.vy * ny;
               if (velocityDotNormal < 0) {
-                // Reflect velocity and apply friction on bounce
-                ball.vx = (ball.vx - 2 * velocityDotNormal * nx) * friction;
-                ball.vy = (ball.vy - 2 * velocityDotNormal * ny) * friction;
+                // Reflect the velocity component along the normal and apply restitution.
+                ball.vx = (ball.vx - 2 * velocityDotNormal * nx) * restitution;
+                ball.vy = (ball.vy - 2 * velocityDotNormal * ny) * restitution;
               }
             }
           }
         }
       }
 
-      // Main animation loop
+      // Main animation loop.
       function animate() {
         requestAnimationFrame(animate);
 
-        // Clear the canvas
+        // Clear entire canvas.
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Update hexagon rotation
+        // Update hexagon rotation.
         hexRotation += hexRotationSpeed;
 
-        // Draw the spinning hexagon (centered in the canvas)
+        // Draw the spinning hexagon centered in the canvas.
         const hexCenterX = canvas.width / 2;
         const hexCenterY = canvas.height / 2;
         drawHexagon(hexCenterX, hexCenterY, hexRadius, hexRotation);
 
-        // Update ball physics: apply gravity and friction
+        // Apply gravity and environmental friction to the ball.
         ball.vy += gravity;
-        ball.vx *= friction;
-        ball.vy *= friction;
+        ball.vx *= environmentFriction;
+        ball.vy *= environmentFriction;
 
-        // Update ball position
+        // Update ball's position.
         ball.x += ball.vx;
         ball.y += ball.vy;
 
-        // Check and handle collisions with the hexagon sides
+        // Handle collisions with hexagon sides.
         checkHexagonCollisions();
 
-        // Draw the ball
+        // Draw the ball.
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
         ctx.fillStyle = '#ffcc00';
@@ -156,7 +156,7 @@
         ctx.closePath();
       }
 
-      // Start the animation loop
+      // Start the animation.
       animate();
     </script>
   </body>
