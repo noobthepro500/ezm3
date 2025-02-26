@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Bouncy Ball with Upward Boost on Wall Hit</title>
+    <title>Bouncy Ball with Upward Boost on Wall Hit – Restart When Too Big</title>
     <style>
       /* Basic CSS reset and full-screen canvas styling */
       body {
@@ -35,8 +35,8 @@
       let hexRotation = 0;           // Current rotation angle in radians
       const hexRotationSpeed = 0.01; // Rotation speed (radians per frame)
 
-      // Ball properties
-      let ball = {
+      // Ball initial properties and a function to reset the simulation.
+      const initialBallData = {
         x: canvas.width / 2,
         y: canvas.height / 2,
         radius: 15,
@@ -44,6 +44,8 @@
         vy: -6,
         mass: 1
       };
+
+      let ball = { ...initialBallData };
 
       // Environment properties
       const gravity = 0.1;         // Gravity value
@@ -104,7 +106,7 @@
           // Distance from the ball's center to the wall (line)
           const dist = ((ball.x - start.x) * nx + (ball.y - start.y) * ny);
 
-          // If the ball is intersecting the wall, check its projection
+          // If the ball is intersecting the wall, check its projection onto the wall segment.
           if (Math.abs(dist) <= ball.radius) {
             const t = ((ball.x - start.x) * dx + (ball.y - start.y) * dy) / (len * len);
             if (t >= 0 && t <= 1) {
@@ -128,11 +130,23 @@
         }
       }
 
+      // Function to reset the simulation when the ball grows too big.
+      function resetSimulation() {
+        // Reset ball properties
+        ball = { ...initialBallData };
+        // Center the ball in case canvas size changed
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        // Reset additional state variables if needed
+        hue = 0;
+        hexRotation = 0;
+      }
+
       // Main animation loop
       function animate() {
         requestAnimationFrame(animate);
 
-        // Draw a semi-transparent rectangle to create a small trail effect.
+        // Clear the canvas with a semi-transparent rectangle to create a trail effect.
         ctx.fillStyle = "rgba(34, 34, 34, 0.2)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -156,6 +170,12 @@
 
         // Increase the ball's size slightly
         ball.radius += 0.05;
+
+        // Check if ball is larger than the hexagon.
+        if (ball.radius > hexRadius) {
+          resetSimulation();
+          return; // Skip drawing the current frame after reset.
+        }
 
         // Update rainbow color by changing hue value.
         hue = (hue + 1) % 360;
