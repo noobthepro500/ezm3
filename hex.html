@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Bouncier Ball in a Spinning Hexagon</title>
+    <title>Bouncier Ball with Growing Size</title>
     <style>
       /* Basic reset and full-screen canvas styling */
       body {
@@ -18,11 +18,11 @@
   <body>
     <canvas id="canvas"></canvas>
     <script>
-      // Get the canvas element and set its context.
+      // Get the canvas element and its drawing context.
       const canvas = document.getElementById('canvas');
       const ctx = canvas.getContext('2d');
 
-      // Function to resize the canvas to full screen.
+      // Resize the canvas to fill the window.
       function resizeCanvas() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -46,11 +46,14 @@
       };
 
       // Environment properties.
-      const gravity = 0.2;
-      const restitution = 0.9;      // Restitution factor for a bouncier collision.
-      const environmentFriction = 0.999; // Light friction applied each frame.
+      const gravity = 0.1;           // Reduced gravity.
+      const restitution = 0.9;       // Restitution factor for bounce.
+      const environmentFriction = 0.999; // A very light friction.
 
-      // Returns the vertices of a hexagon based on its center, radius, and rotation.
+      // Growth factor (the ball increases in size slightly each frame).
+      const growthRate = 0.05;       // Increase ball radius by 0.05 per frame.
+
+      // Returns the vertices of a hexagon given center (cx, cy), radius, and rotation.
       function getHexagonVertices(cx, cy, radius, rotation) {
         const vertices = [];
         for (let i = 0; i < 6; i++) {
@@ -96,23 +99,22 @@
           let nx = -dy / len;
           let ny = dx / len;
 
-          // Determine the distance from the ball's center to the side.
+          // Determine the distance from the ball's center to this side.
           const dist = ((ball.x - start.x) * nx + (ball.y - start.y) * ny);
 
-          // If the ball is overlapping this side...
+          // Check for collision: if the absolute distance is less than ball's radius.
           if (Math.abs(dist) <= ball.radius) {
-            // Project the ball's center onto the side (line segment).
+            // Project ball's center onto the side.
             const t = ((ball.x - start.x) * dx + (ball.y - start.y) * dy) / (len * len);
             if (t >= 0 && t <= 1) {
-              // Adjust ball position to resolve penetration.
+              // Correct the ball's position to resolve penetration.
               const penetration = ball.radius - Math.abs(dist);
               ball.x += nx * penetration;
               ball.y += ny * penetration;
 
-              // Check if the ball is moving toward the wall.
+              // Reflect the velocity if heading toward the wall.
               const velocityDotNormal = ball.vx * nx + ball.vy * ny;
               if (velocityDotNormal < 0) {
-                // Reflect the velocity component along the normal and apply restitution.
                 ball.vx = (ball.vx - 2 * velocityDotNormal * nx) * restitution;
                 ball.vy = (ball.vy - 2 * velocityDotNormal * ny) * restitution;
               }
@@ -125,7 +127,7 @@
       function animate() {
         requestAnimationFrame(animate);
 
-        // Clear entire canvas.
+        // Clear the canvas.
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Update hexagon rotation.
@@ -145,8 +147,11 @@
         ball.x += ball.vx;
         ball.y += ball.vy;
 
-        // Handle collisions with hexagon sides.
+        // Handle collisions with the hexagon.
         checkHexagonCollisions();
+
+        // Increase the ball's size slightly.
+        ball.radius += growthRate;
 
         // Draw the ball.
         ctx.beginPath();
