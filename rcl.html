@@ -36,13 +36,17 @@
     // Global difficulty factor. Increases after each round.
     let difficultyFactor = 1;
 
+    // Tracking shots for accuracy
+    let shotsFired = 0;
+    let shotsHit = 0;
+
     // Array for targets
     let targets = [];
 
     // Function to spawn targets based on current difficultyFactor
     function spawnTargets() {
       targets = [];
-      // Increase number of targets with difficulty: starting with 5, and more added as difficultyFactor increases.
+      // Increase number of targets with difficulty: starting with 5 that scale up with difficulty
       const numTargets = Math.floor(5 * difficultyFactor);
       for (let i = 0; i < numTargets; i++) {
         let radius = 30;
@@ -57,7 +61,7 @@
       }
     }
 
-    // Target class representing floating circles
+    // Target class representing moving circles
     class Target {
       constructor(x, y, radius, speedX, speedY, color) {
         this.x = x;
@@ -71,8 +75,7 @@
       update() {
         this.x += this.speedX;
         this.y += this.speedY;
-
-        // Bounce off the walls
+        // Bounce off the canvas edges.
         if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
           this.speedX = -this.speedX;
         }
@@ -104,13 +107,13 @@
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        this.lifetime = lifetime; // in milliseconds
+        this.lifetime = lifetime; // in ms
         this.startTime = performance.now();
       }
 
       draw(currentTime) {
         let elapsed = currentTime - this.startTime;
-        if (elapsed > this.lifetime) return false; // expired
+        if (elapsed > this.lifetime) return false; // line expired
         let alpha = 1 - elapsed / this.lifetime;
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -142,46 +145,70 @@
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
 
-      // Create a shooting line from the center of the screen to the click location.
+      // Count each shot
+      shotsFired++;
+
+      // Create a shooting line from the center to the click location.
       shootingLines.push(new ShootingLine(centerX, centerY, mouseX, mouseY));
 
-      // Remove any targets hit by the shot.
+      // Determine if any targets are hit.
+      let before = targets.length;
       targets = targets.filter(target => !target.isHit(mouseX, mouseY));
+      let after = targets.length;
 
-      // Check if all targets are cleared. If so, increase difficulty slightly and respawn.
+      // If the number of targets decreased, count it as a hit.
+      if (after < before) {
+        shotsHit++;
+      }
+
+      // If all targets are cleared, increase difficulty and respawn targets.
       if (targets.length === 0) {
         difficultyFactor += 0.3;
         spawnTargets();
       }
     });
 
-    // Function to draw a crosshair at the mouse location.
+    // Function to draw a small dot crosshair with a black stroke at the mouse location.
     function drawCrosshair(x, y) {
+      const dotRadius = 4;
       ctx.beginPath();
-      ctx.strokeStyle = "#fff";
-      ctx.lineWidth = 2;
-      ctx.moveTo(x - 10, y);
-      ctx.lineTo(x + 10, y);
-      ctx.moveTo(x, y - 10);
-      ctx.lineTo(x, y + 10);
+      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#fff";
+      ctx.fill();
+
+      // Draw black stroke around the dot.
+      ctx.lineWidth = 1; // Adjust the stroke width if desired
+      ctx.strokeStyle = "#000";
       ctx.stroke();
       ctx.closePath();
+    }
+
+    // Function to display accuracy at the top of the canvas.
+    function drawAccuracy() {
+      let accuracy = shotsFired > 0 ? ((shotsHit / shotsFired) * 100).toFixed(2) : 0;
+      ctx.font = "20px Arial";
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.fillText(`Accuracy: ${accuracy}%`, canvas.width / 2, 30);
     }
 
     // Main animation loop
     function update(currentTime) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Update and draw each target.
+      // Draw the accuracy scoreboard at the top.
+      drawAccuracy();
+
+      // Update and render targets.
       targets.forEach(target => {
         target.update();
         target.draw();
       });
 
-      // Draw active shooting lines and remove expired ones.
+      // Draw shooting lines and remove any expired ones.
       shootingLines = shootingLines.filter(line => line.draw(currentTime));
 
-      // Draw the crosshair at the current mouse position.
+      // Draw the dot crosshair at the current mouse position.
       if (mouse.x !== undefined && mouse.y !== undefined) {
         drawCrosshair(mouse.x, mouse.y);
       }
