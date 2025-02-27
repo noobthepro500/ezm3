@@ -15,44 +15,97 @@
       background-color: #333;
       cursor: none; /* Hide the default cursor */
     }
+    .toggle-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: center;
+      user-select: none;
+    }
+    .toggle-button:hover {
+      background-color: #555;
+    }
+    .reload-status {
+      position: absolute;
+      top: 50px;
+      right: 10px;
+      color: white;
+      font-size: 20px;
+    }
+    .ammo-status {
+      position: absolute;
+      top: 80px;
+      right: 10px;
+      color: white;
+      font-size: 20px;
+    }
+    .reload-button {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      padding: 10px 20px;
+      background-color: #444;
+      color: white;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .reload-button:hover {
+      background-color: #555;
+    }
   </style>
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <div class="toggle-button" id="toggleButton">Semi-Auto</div>
+  <div class="reload-status" id="reloadStatus"></div>
+  <div class="ammo-status" id="ammoStatus"></div>
+  <button class="reload-button" id="reloadButton">Reload</button>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    // Set canvas to full-screen
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Adjust canvas size when window resizes
     window.addEventListener("resize", () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     });
 
-    // Global difficulty factor. Increases after each round.
     let difficultyFactor = 1;
-
-    // Tracking shots for accuracy
     let shotsFired = 0;
     let shotsHit = 0;
-
-    // Array for targets
     let targets = [];
+    let shootingMode = 'semi';
+    let shootingLines = [];
+    let scoreTexts = [];
+    let isMouseDown = false;
+    let reloadInProgress = false;
+    let reloadTime = 3000; // 3 seconds reload time
+    let lastShotTime = 0;
+    let shotCooldown = 200; // 200ms cooldown for both auto and semi
+    let maxShotsBeforeReload = 30;
+    let currentAmmo = maxShotsBeforeReload;
+    const ammoCapacity = maxShotsBeforeReload;
 
-    // Function to spawn targets based on current difficultyFactor
+    const shotSound = new Audio('homeworkstudy.site/cools.mp3'); // Replace with your sound URL
+
     function spawnTargets() {
       targets = [];
-      // Increase number of targets with difficulty: starting with 5 that scale up with difficulty
       const numTargets = Math.floor(5 * difficultyFactor);
       for (let i = 0; i < numTargets; i++) {
         let radius = 30;
         let x = Math.random() * (canvas.width - 2 * radius) + radius;
         let y = Math.random() * (canvas.height - 2 * radius) + radius;
-        // Increase speed factor with difficulty.
         let baseSpeed = 4;
         let speedX = (Math.random() - 0.5) * baseSpeed * difficultyFactor;
         let speedY = (Math.random() - 0.5) * baseSpeed * difficultyFactor;
@@ -61,7 +114,6 @@
       }
     }
 
-    // Target class representing moving circles
     class Target {
       constructor(x, y, radius, speedX, speedY, color) {
         this.x = x;
@@ -75,7 +127,6 @@
       update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        // Bounce off the canvas edges.
         if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
           this.speedX = -this.speedX;
         }
@@ -93,27 +144,54 @@
       }
 
       isHit(mx, my) {
-        // Simple circular collision detection
         const dx = this.x - mx;
         const dy = this.y - my;
         return Math.sqrt(dx * dx + dy * dy) < this.radius;
       }
     }
 
-    // ShootingLine class for drawing the shot line effect
+    class ScoreText {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.alpha = 1;
+        this.ySpeed = -1;
+        this.lifetime = 1000;
+        this.startTime = performance.now();
+      }
+
+      update(currentTime) {
+        const elapsed = currentTime - this.startTime;
+        this.alpha = 1 - (elapsed / this.lifetime);
+        this.y += this.ySpeed;
+
+        if (this.alpha <= 0) {
+          return false;
+        }
+        return true;
+      }
+
+      draw() {
+        ctx.font = "30px Arial";
+        ctx.fillStyle = `rgba(255, 255, 255, ${this.alpha})`;
+        ctx.textAlign = "center";
+        ctx.fillText("100", this.x, this.y);
+      }
+    }
+
     class ShootingLine {
       constructor(startX, startY, endX, endY, lifetime = 300) {
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        this.lifetime = lifetime; // in ms
+        this.lifetime = lifetime;
         this.startTime = performance.now();
       }
 
       draw(currentTime) {
         let elapsed = currentTime - this.startTime;
-        if (elapsed > this.lifetime) return false; // line expired
+        if (elapsed > this.lifetime) return false;
         let alpha = 1 - elapsed / this.lifetime;
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
@@ -126,64 +204,91 @@
       }
     }
 
-    // Array to hold active shooting lines
-    let shootingLines = [];
-
-    // Track mouse position
     const mouse = {};
+
     canvas.addEventListener("mousemove", function (e) {
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
     });
 
-    // Listen for mouse clicks to "shoot" targets
-    canvas.addEventListener("mousedown", function (e) {
+    function handleMouseDown(e) {
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
 
+      if (reloadInProgress || currentAmmo === 0) return;
+
+      // Check for cooldown
+      const currentTime = performance.now();
+      if (currentTime - lastShotTime < shotCooldown) return;
+
+      // Play the shot sound
+      shotSound.play();
+
+      // Decrease ammo count
+      currentAmmo--;
+      if (currentAmmo === 0) {
+        reloadInProgress = true;
+        document.getElementById('reloadStatus').textContent = 'Reloading...';
+        setTimeout(() => {
+          reloadInProgress = false;
+          currentAmmo = ammoCapacity;
+          document.getElementById('reloadStatus').textContent = '';
+        }, reloadTime);
+      }
+
       // Count each shot
       shotsFired++;
+      lastShotTime = currentTime;
 
-      // Create a shooting line from the center to the click location.
+      // Create a shooting line from the center to the click location
       shootingLines.push(new ShootingLine(centerX, centerY, mouseX, mouseY));
 
-      // Determine if any targets are hit.
+      // Determine if any targets are hit
       let before = targets.length;
       targets = targets.filter(target => !target.isHit(mouseX, mouseY));
       let after = targets.length;
 
-      // If the number of targets decreased, count it as a hit.
+      // If the number of targets decreased, count it as a hit
       if (after < before) {
         shotsHit++;
+        scoreTexts.push(new ScoreText(mouseX, mouseY));
       }
 
-      // If all targets are cleared, increase difficulty and respawn targets.
       if (targets.length === 0) {
         difficultyFactor += 0.3;
         spawnTargets();
       }
+    }
+
+    canvas.addEventListener("mousedown", function (e) {
+      if (shootingMode === 'semi') {
+        handleMouseDown(e);
+      } else if (shootingMode === 'auto') {
+        isMouseDown = true;
+        handleMouseDown(e);
+      }
     });
 
-    // Function to draw a small dot crosshair with a black stroke at the mouse location.
+    canvas.addEventListener("mouseup", function () {
+      isMouseDown = false;
+    });
+
     function drawCrosshair(x, y) {
       const dotRadius = 4;
       ctx.beginPath();
       ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
       ctx.fillStyle = "#fff";
       ctx.fill();
-
-      // Draw black stroke around the dot.
-      ctx.lineWidth = 1; // Adjust the stroke width if desired
+      ctx.lineWidth = 1;
       ctx.strokeStyle = "#000";
       ctx.stroke();
       ctx.closePath();
     }
 
-    // Function to display accuracy at the top of the canvas.
     function drawAccuracy() {
       let accuracy = shotsFired > 0 ? ((shotsHit / shotsFired) * 100).toFixed(2) : 0;
       ctx.font = "20px Arial";
@@ -192,33 +297,93 @@
       ctx.fillText(`Accuracy: ${accuracy}%`, canvas.width / 2, 30);
     }
 
-    // Main animation loop
     function update(currentTime) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Draw the accuracy scoreboard at the top.
+      // Draw accuracy
       drawAccuracy();
 
-      // Update and render targets.
+      // Update and render targets
       targets.forEach(target => {
         target.update();
         target.draw();
       });
 
-      // Draw shooting lines and remove any expired ones.
+      // Draw shooting lines and remove expired ones
       shootingLines = shootingLines.filter(line => line.draw(currentTime));
 
-      // Draw the dot crosshair at the current mouse position.
+      // Draw score texts and remove expired ones
+      scoreTexts = scoreTexts.filter(scoreText => {
+        scoreText.update(currentTime);
+        scoreText.draw();
+        return scoreText.alpha > 0;
+      });
+
+      // Draw crosshair
       if (mouse.x !== undefined && mouse.y !== undefined) {
         drawCrosshair(mouse.x, mouse.y);
       }
 
-      requestAnimationFrame(update);
+      // Update ammo count display
+      document.getElementById('ammoStatus').textContent = `Ammo: ${currentAmmo}/${ammoCapacity}`;
+
+      // Auto fire handling
+      if (shootingMode === 'auto' && isMouseDown) {
+        handleMouseDown({
+          clientX: mouse.x,
+          clientY: mouse.y,
+        });
+      }
+
+      // Reload status update
+      if (reloadInProgress) {
+        document.getElementById('reloadStatus').textContent = 'Reloading...';
+      } else if (currentAmmo === 0) {
+        document.getElementById('reloadStatus').textContent = 'Out of Ammo!';
+      }
     }
 
-    // Start the game by spawning initial targets.
+    // Start the game loop
+    function gameLoop(currentTime) {
+      update(currentTime);
+      requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+
+    // Switch shooting mode on button click
+    document.getElementById("toggleButton").addEventListener("click", function () {
+      shootingMode = shootingMode === 'semi' ? 'auto' : 'semi';
+      document.getElementById("toggleButton").textContent = shootingMode === 'semi' ? "Semi-Auto" : "Auto";
+    });
+
+    // Reload functionality with the 'r' key or reload button
+    document.getElementById("reloadButton").addEventListener("click", function () {
+      if (currentAmmo === 0 && !reloadInProgress) {
+        reloadInProgress = true;
+        document.getElementById('reloadStatus').textContent = 'Reloading...';
+        setTimeout(() => {
+          reloadInProgress = false;
+          currentAmmo = ammoCapacity;
+          document.getElementById('reloadStatus').textContent = '';
+        }, reloadTime);
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "r" && currentAmmo === 0 && !reloadInProgress) {
+        reloadInProgress = true;
+        document.getElementById('reloadStatus').textContent = 'Reloading...';
+        setTimeout(() => {
+          reloadInProgress = false;
+          currentAmmo = ammoCapacity;
+          document.getElementById('reloadStatus').textContent = '';
+        }, reloadTime);
+      }
+    });
+
+    // Initialize targets
     spawnTargets();
-    update();
   </script>
 </body>
 </html>
