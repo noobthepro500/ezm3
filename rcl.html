@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>1v1rcl Aim Training Clone</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #222;
+    }
+    canvas {
+      display: block;
+      background-color: #333;
+      cursor: none; /* Hide the default cursor */
+    }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Set canvas to full-screen
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Adjust canvas size when window resizes
+    window.addEventListener("resize", () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    // Global difficulty factor. Increases after each round.
+    let difficultyFactor = 1;
+
+    // Array for targets
+    let targets = [];
+
+    // Function to spawn targets based on current difficultyFactor
+    function spawnTargets() {
+      targets = [];
+      // Increase number of targets with difficulty: starting with 5, and more added as difficultyFactor increases.
+      const numTargets = Math.floor(5 * difficultyFactor);
+      for (let i = 0; i < numTargets; i++) {
+        let radius = 30;
+        let x = Math.random() * (canvas.width - 2 * radius) + radius;
+        let y = Math.random() * (canvas.height - 2 * radius) + radius;
+        // Increase speed factor with difficulty.
+        let baseSpeed = 4;
+        let speedX = (Math.random() - 0.5) * baseSpeed * difficultyFactor;
+        let speedY = (Math.random() - 0.5) * baseSpeed * difficultyFactor;
+        let color = "hsl(" + Math.floor(Math.random() * 360) + ", 80%, 60%)";
+        targets.push(new Target(x, y, radius, speedX, speedY, color));
+      }
+    }
+
+    // Target class representing floating circles
+    class Target {
+      constructor(x, y, radius, speedX, speedY, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.speedX = speedX;
+        this.speedY = speedY;
+        this.color = color;
+      }
+
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+
+        // Bounce off the walls
+        if (this.x + this.radius > canvas.width || this.x - this.radius < 0) {
+          this.speedX = -this.speedX;
+        }
+        if (this.y + this.radius > canvas.height || this.y - this.radius < 0) {
+          this.speedY = -this.speedY;
+        }
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      isHit(mx, my) {
+        // Simple circular collision detection
+        const dx = this.x - mx;
+        const dy = this.y - my;
+        return Math.sqrt(dx * dx + dy * dy) < this.radius;
+      }
+    }
+
+    // ShootingLine class for drawing the shot line effect
+    class ShootingLine {
+      constructor(startX, startY, endX, endY, lifetime = 300) {
+        this.startX = startX;
+        this.startY = startY;
+        this.endX = endX;
+        this.endY = endY;
+        this.lifetime = lifetime; // in milliseconds
+        this.startTime = performance.now();
+      }
+
+      draw(currentTime) {
+        let elapsed = currentTime - this.startTime;
+        if (elapsed > this.lifetime) return false; // expired
+        let alpha = 1 - elapsed / this.lifetime;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.lineWidth = 4;
+        ctx.moveTo(this.startX, this.startY);
+        ctx.lineTo(this.endX, this.endY);
+        ctx.stroke();
+        ctx.closePath();
+        return true;
+      }
+    }
+
+    // Array to hold active shooting lines
+    let shootingLines = [];
+
+    // Track mouse position
+    const mouse = {};
+    canvas.addEventListener("mousemove", function (e) {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    });
+
+    // Listen for mouse clicks to "shoot" targets
+    canvas.addEventListener("mousedown", function (e) {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      // Create a shooting line from the center of the screen to the click location.
+      shootingLines.push(new ShootingLine(centerX, centerY, mouseX, mouseY));
+
+      // Remove any targets hit by the shot.
+      targets = targets.filter(target => !target.isHit(mouseX, mouseY));
+
+      // Check if all targets are cleared. If so, increase difficulty slightly and respawn.
+      if (targets.length === 0) {
+        difficultyFactor += 0.3;
+        spawnTargets();
+      }
+    });
+
+    // Function to draw a crosshair at the mouse location.
+    function drawCrosshair(x, y) {
+      ctx.beginPath();
+      ctx.strokeStyle = "#fff";
+      ctx.lineWidth = 2;
+      ctx.moveTo(x - 10, y);
+      ctx.lineTo(x + 10, y);
+      ctx.moveTo(x, y - 10);
+      ctx.lineTo(x, y + 10);
+      ctx.stroke();
+      ctx.closePath();
+    }
+
+    // Main animation loop
+    function update(currentTime) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Update and draw each target.
+      targets.forEach(target => {
+        target.update();
+        target.draw();
+      });
+
+      // Draw active shooting lines and remove expired ones.
+      shootingLines = shootingLines.filter(line => line.draw(currentTime));
+
+      // Draw the crosshair at the current mouse position.
+      if (mouse.x !== undefined && mouse.y !== undefined) {
+        drawCrosshair(mouse.x, mouse.y);
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Start the game by spawning initial targets.
+    spawnTargets();
+    update();
+  </script>
+</body>
+</html>
