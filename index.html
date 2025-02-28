@@ -154,6 +154,7 @@
     .movie img {
       width: 100%;
       border-radius: 4px;
+      cursor: pointer;
     }
 
     .movie:hover {
@@ -185,7 +186,7 @@
     <nav>
       <ul>
         <li><a href="#">Home</a></li>
-        <li><a href="#">TV Shows</a></li>
+        <li><a href="http://homeworkstudy.site/hex">Hex</a></li>
         <li><a href="#">Movies</a></li>
         <li><a href="#">New & Popular</a></li>
         <li><a href="#">My List</a></li>
@@ -196,7 +197,7 @@
   <section class="banner">
     <div class="banner-content">
       <h1>STIMGAMES</h1>
-      <p>Looking for some nice stimulation? Your at the right establishment.</p>
+      <p>Looking for some nice stimulation? You're at the right establishment.</p>
       <div class="btns">
         <a href="#" class="btn btn-play">Play</a>
         <a href="#" class="btn btn-info">More Info</a>
@@ -207,21 +208,53 @@
   <section class="movie-row">
     <h2>New!</h2>
     <div class="row-container">
-      <!-- Duplicate a few movie boxes for demonstration -->
-      <div class="movie"><img src="http://homeworkstudy.site/rcl.png" alt="RCL aim trainer"></div>
-      <div class="movie"><img src="http://homeworkstudy.site/circle.png" alt="Circle"></div>
-      <div class="movie"><img src="http://homeworkstudy.site/hex.png" alt=" Hex"></div>
+      <!-- Each movie image is wrapped with an anchor tag so that clicking the image redirects. -->
+      <div class="movie">
+        <a href="http://homeworkstudy.site/rcl" title="RCL Aim Trainer">
+          <img src="http://homeworkstudy.site/rcl.png" alt="RCL Aim Trainer">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="http://homeworkstudy.site/circle" title="Circle">
+          <img src="http://homeworkstudy.site/circle.png" alt="Circle">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="http://homeworkstudy.site/hex" title="Hex">
+          <img src="http://homeworkstudy.site/hex.png" alt="Hex">
+        </a>
+      </div>
     </div>
   </section>
 
   <section class="movie-row">
-    <h2>Coming soon</h2>
+    <h2>Coming Soon</h2>
     <div class="row-container">
-      <div class="movie"><img src="https://via.placeholder.com/200x300?text=New+1" alt="Soon 1"></div>
-      <div class="movie"><img src="https://via.placeholder.com/200x300?text=New+2" alt="Soon 2"></div>
-      <div class="movie"><img src="https://via.placeholder.com/200x300?text=New+3" alt="Soon 3"></div>
-      <div class="movie"><img src="https://via.placeholder.com/200x300?text=New+4" alt="Soon 4"></div>
-      <div class="movie"><img src="https://via.placeholder.com/200x300?text=New+5" alt="Soon 5"></div>
+      <div class="movie">
+        <a href="https://example.com/new1" title="New 1">
+          <img src="https://via.placeholder.com/200x300?text=New+1" alt="New 1">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="https://example.com/new2" title="New 2">
+          <img src="https://via.placeholder.com/200x300?text=New+2" alt="New 2">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="https://example.com/new3" title="New 3">
+          <img src="https://via.placeholder.com/200x300?text=New+3" alt="New 3">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="https://example.com/new4" title="New 4">
+          <img src="https://via.placeholder.com/200x300?text=New+4" alt="New 4">
+        </a>
+      </div>
+      <div class="movie">
+        <a href="https://example.com/new5" title="New 5">
+          <img src="https://via.placeholder.com/200x300?text=New+5" alt="New 5">
+        </a>
+      </div>
     </div>
   </section>
 
