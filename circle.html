@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Spinning Circle with Multiple Balls & a Hole</title>
+    <style>
+      /* Basic CSS reset and full-screen canvas styling */
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #222;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <script>
+      // Get canvas and context
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Resize canvas to full window size
+      function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+
+      // Container (outer circle) properties:
+      const container = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: 250,
+        rotation: 0,
+        rotationSpeed: 0.01,
+        // Gap in the container's wall
+        gapAngle: Math.PI / 8  // gap size (radians)
+      };
+
+      // Ball properties for each small ball inside the container.
+      const ballCount = 8; // number of balls inside
+      const ballsInitial = [];
+      function createBalls() {
+        const balls = [];
+        // Spread balls randomly within the container.
+        for (let i = 0; i < ballCount; i++) {
+          balls.push({
+            // Start near the center (with a small random offset)
+            x: container.x + Math.random() * 50 - 25,
+            y: container.y + Math.random() * 50 - 25,
+            radius: 15,
+            vx: (Math.random() - 0.5) * 8,
+            vy: (Math.random() - 0.5) * 8,
+            mass: 1,
+            hue: Math.floor(Math.random()*360)
+          });
+        }
+        return balls;
+      }
+      let balls = createBalls();
+
+      // Environment properties
+      const gravity = 0.1;
+      const restitution = 0.9;
+      const friction = 0.999;
+      // Extra boost applied on bounce (if desired)
+      const bounceBoost = 1.5;
+
+      // Reset simulation when all balls have fallen out
+      function resetSimulation() {
+        balls = createBalls();
+        container.rotation = 0;
+      }
+
+      // Function to draw the container circle with a gap.
+      // The container rotates, so the gap rotates along with it.
+      function drawContainer() {
+        ctx.save();
+        // Move to the container center
+        ctx.translate(container.x, container.y);
+        ctx.rotate(container.rotation);
+        // Draw container wall as an arc missing the gap.
+        ctx.beginPath();
+        // Draw from gap end to gap beginning
+        // For clarity, let’s define the gap spanning from -gapAngle/2 to +gapAngle/2.
+        // Then draw two arcs: one from (gapAngle/2) to 2PI - (gapAngle/2)
+        const startAngle = container.gapAngle / 2;
+        const endAngle = 2 * Math.PI - container.gapAngle / 2;
+        ctx.arc(0, 0, container.radius, startAngle, endAngle, false);
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Check collisions for each ball with the container's wall.
+      // The container is a circle. If a ball gets near the wall,
+      // reflect its velocity unless it is within the gap.
+      function checkContainerCollision(ball) {
+        // Compute vector from container center to ball.
+        const dx = ball.x - container.x;
+        const dy = ball.y - container.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Only process collision if the ball is near the wall.
+        // (We use container.radius - ball.radius as a threshold)
+        if (dist + ball.radius >= container.radius) {
+          // Determine the angle of the ball in container coordinates.
+          let angle = Math.atan2(dy, dx);
+          if (angle < 0) angle += 2 * Math.PI; // normalize to [0,2PI]
+
+          // The gap rotates with the container. Determine the gap range.
+          // The gap is defined relative to container.rotation.
+          let gapStart = container.rotation - container.gapAngle / 2;
+          let gapEnd = container.rotation + container.gapAngle / 2;
+          // Normalize gap angles to [0,2PI]
+          gapStart = (gapStart + 2 * Math.PI) % (2 * Math.PI);
+          gapEnd = (gapEnd + 2 * Math.PI) % (2 * Math.PI);
+
+          let inGap = false;
+          if (gapStart < gapEnd) {
+            inGap = angle >= gapStart && angle <= gapEnd;
+          } else {
+            // The gap crosses the 0 radians line.
+            inGap = angle >= gapStart || angle <= gapEnd;
+          }
+
+          if (!inGap) {
+            // Compute normal from container center to ball.
+            const nx = dx / dist;
+            const ny = dy / dist;
+            // Compute penetration (how far is ball overlapping).
+            const penetration = (dist + ball.radius) - container.radius;
+            // Push ball back
+            ball.x -= nx * penetration;
+            ball.y -= ny * penetration;
+            // Reflect velocity (if moving outward, dot product > 0 means leaving the container)
+            const velocityDotNormal = ball.vx * nx + ball.vy * ny;
+            if (velocityDotNormal > 0) {
+              ball.vx = (ball.vx - 2 * velocityDotNormal * nx) * restitution;
+              ball.vy = (ball.vy - 2 * velocityDotNormal * ny) * restitution;
+              // Optionally give a small boost inward
+              ball.vx += -nx * bounceBoost;
+              ball.vy += -ny * bounceBoost;
+            }
+          } else {
+            // In the gap and ball is essentially leaving.
+            // Mark ball for removal by flagging it with an offContainer property.
+            ball.offContainer = true;
+          }
+        }
+      }
+
+      // Main animation loop.
+      function animate() {
+        requestAnimationFrame(animate);
+        // Clear canvas with a slight opacity to create a trailing effect.
+        ctx.fillStyle = "rgba(34, 34, 34, 0.25)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Update container rotation.
+        container.rotation += container.rotationSpeed;
+
+        // Draw container.
+        drawContainer();
+
+        // For each ball, update physics and check collisions.
+        for (let i = balls.length - 1; i >= 0; i--) {
+          let ball = balls[i];
+          // Apply gravity
+          ball.vy += gravity;
+          // Apply friction to velocity
+          ball.vx *= friction;
+          ball.vy *= friction;
+          // Update ball position
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+
+          // Simple floor check: if a ball falls below the canvas, remove it.
+          if (ball.y - ball.radius > canvas.height) {
+            ball.offContainer = true;
+          }
+
+          // Check collision with circular container wall.
+          checkContainerCollision(ball);
+
+          // Draw ball only if it has not gone off.
+          if (!ball.offContainer) {
+            // Update hue slightly for a rainbow effect.
+            ball.hue = (ball.hue + 1) % 360;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `hsl(${ball.hue}, 100%, 50%)`;
+            ctx.fill();
+            ctx.closePath();
+          } else {
+            // Remove ball from simulation
+            balls.splice(i, 1);
+          }
+        }
+
+        // If all balls are gone, reset the simulation.
+        if (balls.length === 0) {
+          resetSimulation();
+        }
+      }
+
+      // Start the animation.
+      animate();
+    </script>
+  </body>
+</html>
