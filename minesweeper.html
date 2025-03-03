@@ -6,49 +6,85 @@
     <title>Minesweeper</title>
     <style>
       body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        background-color: #f4f4f4;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: linear-gradient(135deg, #ece9e6, #ffffff);
         margin: 0;
-        padding: 0;
+        padding: 20px;
+        color: #333;
+        text-align: center
       }
 
       h1 {
-        margin: 20px;
-        color: #333;
+        margin: 10px 0;
+        font-size: 2rem;
+        color: #444
+      }
+
+      #info {
+        margin: 20px auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px
+      }
+
+      #info button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        background: #007BFF;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s
+      }
+
+      #info button:hover {
+        background: #0056b3
+      }
+
+      #info p {
+        font-size: 1.2rem;
+        margin: 10px
       }
 
       #game-container {
         display: grid;
-        justify-content: center;
         gap: 5px;
+        justify-content: center;
         margin: 20px auto;
+        border: 2px solid #ddd;
+        border-radius: 10px;
+        padding: 10px;
+        background: #f9f9f9
       }
 
       .cell {
+        background: #4caf50;
+        border: 1px solid #388e3c;
         width: 30px;
         height: 30px;
-        background-color: #099800;
-        border: 1px solid #aaa;
-        font-size: 16px;
-        font-weight: bold;
         display: flex;
         justify-content: center;
         align-items: center;
+        font-weight: 600;
+        color: #fff;
         cursor: pointer;
+        transition: background 0.2s
       }
 
       .cell.revealed {
-        background-color: #53ff4e;
+        background: #aed581;
         cursor: default;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.2)
       }
 
       .cell.mine {
-        background-color: red;
+        background: #e53935
       }
 
       .cell.flag {
-        background-color: #ffd700;
+        background: #ffb300
       }
     </style>
   </head>
