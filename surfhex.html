@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>Bouncy Ball with Upward Boost on Wall Hit – Restart When Too Big & Video</title>
+    <style>
+      /* Basic CSS reset */
+      body {
+        margin: 0;
+        background-color: #222;
+        font-family: sans-serif;
+      }
+
+      /* Flex container for canvas and video */
+      .container {
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Style for the simulation canvas */
+      .canvas-container {
+        flex: 1;
+        position: relative;
+      }
+      
+      canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        display: block;
+      }
+
+      /* Style for the video element */
+      .video-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #000;
+      }
+      
+      video {
+        max-width: 100%;
+        max-height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Canvas Animation Container -->
+      <div class="canvas-container">
+        <canvas id="canvas"></canvas>
+      </div>
+      <!-- Video Container -->
+      <div class="video-container">
+        <!-- Replace the src URL with the hosted video URL -->
+        <video src="https://stimulation.ryet.ru/surfers.mp4" autoplay loop muted></video>
+      </div>
+    </div>
+
+    <script>
+      // Get the canvas element and its drawing context
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Resize the canvas to fill its container
+      function resizeCanvas() {
+        canvas.width = document.querySelector('.canvas-container').clientWidth;
+        canvas.height = document.querySelector('.canvas-container').clientHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      // Hexagon properties
+      const hexRadius = 250;         // Radius of the hexagon's circumscribed circle
+      let hexRotation = 0;           // Current rotation angle in radians
+      const hexRotationSpeed = 0.01; // Rotation speed (radians per frame)
+
+      // Ball initial properties and a function to reset the simulation.
+      const initialBallData = {
+        x: canvas.width / 2,
+        y: canvas.height / 2,
+        radius: 15,
+        vx: 8,
+        vy: -6,
+        mass: 1
+      };
+
+      let ball = { ...initialBallData };
+
+      // Environment properties
+      const gravity = 0.1;         // Gravity value
+      const restitution = 0.9;     // Restitution factor for bouncing (energy preserved)
+      const environmentFriction = 0.999;  // Mild friction applied to motion
+      const upwardBoost = 2.0;     // Extra upward boost each time a wall is hit
+
+      // Rainbow color cycle for the ball
+      let hue = 0;
+
+      // Utility: returns vertices of a hexagon given center (cx, cy), radius, and rotation.
+      function getHexagonVertices(cx, cy, radius, rotation) {
+        const vertices = [];
+        for (let i = 0; i < 6; i++) {
+          const angle = rotation + (Math.PI / 3) * i;
+          const x = cx + radius * Math.cos(angle);
+          const y = cy + radius * Math.sin(angle);
+          vertices.push({ x, y });
+        }
+        return vertices;
+      }
+
+      // Draw the hexagon outline
+      function drawHexagon(cx, cy, radius, rotation) {
+        const vertices = getHexagonVertices(cx, cy, radius, rotation);
+        ctx.beginPath();
+        ctx.moveTo(vertices[0].x, vertices[0].y);
+        for (let i = 1; i < vertices.length; i++) {
+          ctx.lineTo(vertices[i].x, vertices[i].y);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Check collisions between the ball and hexagon walls.
+      // Each time a collision is detected, we reflect the velocity and add an upward boost.
+      function checkHexagonCollisions() {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const vertices = getHexagonVertices(centerX, centerY, hexRadius, hexRotation);
+
+        // Process each hexagon side
+        for (let i = 0; i < vertices.length; i++) {
+          const start = vertices[i];
+          const end = vertices[(i + 1) % vertices.length];
+
+          // Compute side vector and length
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const len = Math.sqrt(dx * dx + dy * dy);
+
+          // Compute normalized normal to the side (perpendicular)
+          let nx = -dy / len;
+          let ny = dx / len;
+
+          // Distance from the ball's center to the wall (line)
+          const dist = ((ball.x - start.x) * nx + (ball.y - start.y) * ny);
+
+          // Check if the ball is intersecting the wall segment
+          if (Math.abs(dist) <= ball.radius) {
+            const t = ((ball.x - start.x) * dx + (ball.y - start.y) * dy) / (len * len);
+            if (t >= 0 && t <= 1) {
+              // Resolve penetration
+              const penetration = ball.radius - Math.abs(dist);
+              ball.x += nx * penetration;
+              ball.y += ny * penetration;
+
+              // Only process bounce if ball is moving towards the wall
+              const velocityDotNormal = ball.vx * nx + ball.vy * ny;
+              if (velocityDotNormal < 0) {
+                // Reflect the velocity using the restitution factor.
+                ball.vx = (ball.vx - 2 * velocityDotNormal * nx) * restitution;
+                ball.vy = (ball.vy - 2 * velocityDotNormal * ny) * restitution;
+                // Add an upward boost (upward is negative y direction)
+                ball.vy -= upwardBoost;
+              }
+            }
+          }
+        }
+      }
+
+      // Function to reset the simulation when the ball grows too big.
+      function resetSimulation() {
+        // Reset ball properties
+        ball = { ...initialBallData };
+        // Center the ball in case canvas size changed
+        ball.x = canvas.width / 2;
+        ball.y = canvas.height / 2;
+        // Reset additional state variables if needed
+        hue = 0;
+        hexRotation = 0;
+      }
+
+      // Main animation loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        // Clear the canvas with a semi-transparent rectangle to create a trail effect.
+        ctx.fillStyle = "rgba(34, 34, 34, 0.2)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Update hexagon rotation
+        hexRotation += hexRotationSpeed;
+
+        // Draw the spinning hexagon
+        const hexCenterX = canvas.width / 2;
+        const hexCenterY = canvas.height / 2;
+        drawHexagon(hexCenterX, hexCenterY, hexRadius, hexRotation);
+
+        // Update ball physics: apply gravity and friction
+        ball.vy += gravity;
+        ball.vx *= environmentFriction;
+        ball.vy *= environmentFriction;
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+
+        // Handle collisions with hexagon walls (with an upward boost)
+        checkHexagonCollisions();
+
+        // Increase the ball's size slightly
+        ball.radius += 0.05;
+
+        // Check if the ball is larger than the hexagon.
+        if (ball.radius > hexRadius) {
+          resetSimulation();
+          return; // Skip drawing the current frame after reset.
+        }
+
+        // Update rainbow color by changing hue value.
+        hue = (hue + 1) % 360;
+        const ballColor = `hsl(${hue}, 100%, 50%)`;
+
+        // Draw the ball (rainbow colored)
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+        ctx.fillStyle = ballColor;
+        ctx.fill();
+        ctx.closePath();
+      }
+
+      // Start the animation.
+      animate();
+    </script>
+  </body>
+</html>
