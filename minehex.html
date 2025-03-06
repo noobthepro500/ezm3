@@ -37,7 +37,7 @@
         position: relative;
         background-color: #000;
       }
-
+      
       .video-container iframe {
         width: 100%;
         height: 100%;
@@ -64,15 +64,15 @@
       </div>
       <!-- Video Container -->
       <div class="video-container">
-        <!-- YouTube embed with autoplay, mute, no controls, looping etc. -->
-        <iframe 
-          src="https://www.youtube.com/embed/ouKo1H8fSxA?autoplay=1&mute=1&controls=0&loop=1&playlist=ouKo1H8fSxA&disablekb=1&modestbranding=1" 
-          title="Breaking glass bottles 🙀🔥A Crushing Crunchy & Soft Things !🚧⚠️#asmr #bottle #subscribe #like" 
+        <!-- YouTube iframe embed with autoplay, muted, no controls, and looping -->
+        <iframe
+          src="https://www.youtube.com/embed/eBExtYRpuqI?autoplay=1&mute=1&controls=0&loop=1&playlist=eBExtYRpuqI&disablekb=1&modestbranding=1"
+          title="Minecraft Parkour Gameplay - No Copyright (SMOOTHEST)"
           referrerpolicy="strict-origin-when-cross-origin"
-          allow="autoplay" 
+          allow="autoplay"
           allowfullscreen>
         </iframe>
-        <!-- Invisible overlay to prevent interaction with the video -->
+        <!-- Invisible cover on top of the iframe -->
         <div class="video-cover"></div>
       </div>
     </div>
@@ -143,7 +143,7 @@
       }
 
       // Check collisions between the ball and hexagon walls.
-      // Each time a collision is detected, reflect the velocity and add an upward boost.
+      // Each time a collision is detected, we reflect the velocity and add an upward boost.
       function checkHexagonCollisions() {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
