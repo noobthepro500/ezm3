@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -35,15 +34,25 @@
       /* Style for the video element */
       .video-container {
         flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: relative;
         background-color: #000;
       }
-      
-      video {
-        max-width: 100%;
-        max-height: 100%;
+
+      .video-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      /* Invisible cover so that the iframe can't be clicked */
+      .video-cover {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 2;
+        background: transparent;
       }
     </style>
   </head>
@@ -55,8 +64,16 @@
       </div>
       <!-- Video Container -->
       <div class="video-container">
-        <!-- Replace the src URL with the hosted video URL -->
-        <video src="https://stimulation.ryet.ru/bottle.mp4" autoplay loop muted></video>
+        <!-- YouTube embed with autoplay, mute, no controls, looping etc. -->
+        <iframe 
+          src="https://www.youtube.com/embed/ouKo1H8fSxA?autoplay=1&mute=1&controls=0&loop=1&playlist=ouKo1H8fSxA&disablekb=1&modestbranding=1" 
+          title="Breaking glass bottles 🙀🔥A Crushing Crunchy & Soft Things !🚧⚠️#asmr #bottle #subscribe #like" 
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="autoplay" 
+          allowfullscreen>
+        </iframe>
+        <!-- Invisible overlay to prevent interaction with the video -->
+        <div class="video-cover"></div>
       </div>
     </div>
 
@@ -126,7 +143,7 @@
       }
 
       // Check collisions between the ball and hexagon walls.
-      // Each time a collision is detected, we reflect the velocity and add an upward boost.
+      // Each time a collision is detected, reflect the velocity and add an upward boost.
       function checkHexagonCollisions() {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
