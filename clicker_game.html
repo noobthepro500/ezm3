@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Clicker Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #gameContainer {
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+        }
+
+        #clickButton {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: #ff4757;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            margin: 20px;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        #clickButton:hover {
+            transform: scale(1.05);
+        }
+
+        #clickButton:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 30px rgba(255, 71, 87, 0.8);
+        }
+
+        .stats {
+            font-size: 24px;
+            margin: 20px;
+        }
+
+        .upgrade {
+            background: #2f3542;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .upgrade button {
+            background: #2ed573;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .upgrade button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="stats">
+            Money: $<span id="money">0</span>
+            <br>
+            CPS: <span id="cps">0</span>
+        </div>
+        
+        <a href="perfectCookie.png" id="clickButton" target="_blank">CLICK ME!</a>
+
+        <div id="upgrades">
+            <div class="upgrade">
+                <div>
+                    <h3>Auto Clicker</h3>
+                    Level: <span id="autoClickerLevel">0</span>
+                </div>
+                <button id="buyAutoClicker">
+                    Cost: $<span id="autoClickerCost">10</span>
+                </button>
+            </div>
+
+            <div class="upgrade">
+                <div>
+                    <h3>Click Multiplier</h3>
+                    Level: <span id="multiplierLevel">1</span>
+                </div>
+                <button id="buyMultiplier">
+                    Cost: $<span id="multiplierCost">50</span>
+                </button>
+            </div>
+
+            <div class="upgrade">
+                <div>
+                    <h3>Super Cursor</h3>
+                    Level: <span id="cursorLevel">0</span>
+                    <br>
+                    Bonus Chance: <span id="cursorChance">0</span>%
+                </div>
+                <button id="buyCursor">
+                    Cost: $<span id="cursorCost">200</span>
+                </button>
+            </div>
+
+            <div class="upgrade">
+                <div>
+                    <h3>Time Warp</h3>
+                    Level: <span id="warpLevel">0</span>
+                    <br>
+                    Speed Boost: <span id="warpBoost">0</span>x
+                </div>
+                <button id="buyWarp">
+                    Cost: $<span id="warpCost">500</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            money: 0,
+            autoClickerLevel: 0,
+            multiplierLevel: 1,
+            cursorLevel: 0,
+            warpLevel: 0,
+            autoClickerCost: 10,
+            multiplierCost: 50,
+            cursorCost: 200,
+            warpCost: 500
+        };
+
+        // Load saved game with NaN protection
+        const savedGame = localStorage.getItem('clickerGame');
+        if (savedGame) {
+            gameState = Object.assign({ 
+                money: 0,
+                autoClickerLevel: 0,
+                multiplierLevel: 1,
+                cursorLevel: 0,
+                warpLevel: 0,
+                autoClickerCost: 10,
+                multiplierCost: 50,
+                cursorCost: 200,
+                warpCost: 500
+            }, JSON.parse(savedGame));
+        }
+
+        // Game loop with Time Warp boost
+        setInterval(() => {
+            const warpMultiplier = 1 + (gameState.warpLevel * 0.5);
+            gameState.money += gameState.autoClickerLevel * gameState.multiplierLevel * warpMultiplier;
+            updateDisplay();
+        }, 1000);
+
+        // Click handler with Super Cursor bonus
+        document.getElementById('clickButton').addEventListener('click', () => {
+            let clickValue = gameState.multiplierLevel;
+            const bonusChance = Math.min(gameState.cursorLevel * 5, 50);
+            if (Math.random() < bonusChance / 100) {
+                clickValue *= 2;
+            }
+            gameState.money += clickValue;
+            updateDisplay();
+        });
+
+        // Upgrade handlers
+        document.getElementById('buyAutoClicker').addEventListener('click', () => {
+            if (gameState.money >= gameState.autoClickerCost) {
+                gameState.money -= gameState.autoClickerCost;
+                gameState.autoClickerLevel++;
+                gameState.autoClickerCost = Math.floor(gameState.autoClickerCost * 1.5);
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('buyMultiplier').addEventListener('click', () => {
+            if (gameState.money >= gameState.multiplierCost) {
+                gameState.money -= gameState.multiplierCost;
+                gameState.multiplierLevel++;
+                gameState.multiplierCost = Math.floor(gameState.multiplierCost * 2);
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('buyCursor').addEventListener('click', () => {
+            if (gameState.money >= gameState.cursorCost) {
+                gameState.money -= gameState.cursorCost;
+                gameState.cursorLevel++;
+                gameState.cursorCost = Math.floor(gameState.cursorCost * 2.5);
+                updateDisplay();
+            }
+        });
+
+        document.getElementById('buyWarp').addEventListener('click', () => {
+            if (gameState.money >= gameState.warpCost) {
+                gameState.money -= gameState.warpCost;
+                gameState.warpLevel++;
+                gameState.warpCost = Math.floor(gameState.warpCost * 3);
+                updateDisplay();
+            }
+        });
+
+        function updateDisplay() {
+            document.getElementById('money').textContent = formatNumber(gameState.money);
+            document.getElementById('cps').textContent = formatNumber(
+                gameState.autoClickerLevel * gameState.multiplierLevel * (1 + gameState.warpLevel * 0.5)
+            );
+            
+            // Update all level displays
+            document.getElementById('autoClickerLevel').textContent = gameState.autoClickerLevel;
+            document.getElementById('multiplierLevel').textContent = gameState.multiplierLevel;
+            document.getElementById('cursorLevel').textContent = gameState.cursorLevel;
+            document.getElementById('warpLevel').textContent = gameState.warpLevel;
+            
+            // Update all cost displays
+            document.getElementById('autoClickerCost').textContent = formatNumber(gameState.autoClickerCost);
+            document.getElementById('multiplierCost').textContent = formatNumber(gameState.multiplierCost);
+            document.getElementById('cursorCost').textContent = formatNumber(gameState.cursorCost);
+            document.getElementById('warpCost').textContent = formatNumber(gameState.warpCost);
+            
+            // Update bonus displays
+            document.getElementById('cursorChance').textContent = Math.min(gameState.cursorLevel * 5, 50);
+            document.getElementById('warpBoost').textContent = (gameState.warpLevel * 0.5).toFixed(1);
+            
+            // Update button states
+            document.getElementById('buyAutoClicker').disabled = gameState.money < gameState.autoClickerCost;
+            document.getElementById('buyMultiplier').disabled = gameState.money < gameState.multiplierCost;
+            document.getElementById('buyCursor').disabled = gameState.money < gameState.cursorCost;
+            document.getElementById('buyWarp').disabled = gameState.money < gameState.warpCost;
+
+            // Auto-save game
+            localStorage.setItem('clickerGame', JSON.stringify(gameState));
+        }
+
+        function formatNumber(num) {
+            if (num >= 1e6) return (num/1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num/1e3).toFixed(1) + 'K';
+            return num;
+        }
+
+        // Initial display update
+        updateDisplay();
+    </script>
+</body>
+</html>
