@@ -1,0 +1,421 @@
+<!DOCTYPE html> 
+
+<html lang="en"> 
+
+<head> 
+
+    <meta charset="UTF-8"> 
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+
+    <title>Third-Person Shooter Game</title> 
+
+    <style> 
+
+        body { margin: 0; overflow: hidden; } 
+
+        canvas { display: block; } 
+
+    </style> 
+
+</head> 
+
+<body> 
+
+    <!-- Include Three.js and PointerLockControls --> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script> 
+
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script> 
+
+    <script> 
+
+        // Basic Three.js setup 
+
+        const scene = new THREE.Scene(); 
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); 
+
+        const renderer = new THREE.WebGLRenderer(); 
+
+        renderer.setSize(window.innerWidth, window.innerHeight); 
+
+        renderer.shadowMap.enabled = true; // Enable shadow mapping 
+
+        document.body.appendChild(renderer.domElement); 
+
+  
+
+        // Set the background color to blue 
+
+        scene.background = new THREE.Color(0x87CEEB); // Light blue color 
+
+  
+
+        // Floor setup 
+
+        const floorGeometry = new THREE.PlaneGeometry(100, 100); 
+
+        const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, side: THREE.DoubleSide }); 
+
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial); 
+
+        floor.rotation.x = -Math.PI / 2; // Rotate the floor to be horizontal 
+
+        floor.receiveShadow = true; // Allow the floor to receive shadows 
+
+        scene.add(floor); 
+
+  
+
+        const staircases = []; // Array to hold staircases for collision detection 
+
+  
+
+        // Function to create a staircase 
+
+        function createStaircase(x, z) { 
+
+            const staircaseHeight = 0.5; // Height of each step 
+
+            const stepWidth = 1; 
+
+            const stepDepth = 1; 
+
+            const steps = 10; // Number of steps 
+
+  
+
+            const staircaseGroup = new THREE.Group(); 
+
+  
+
+            for (let i = 0; i < steps; i++) { 
+
+                const stepGeometry = new THREE.BoxGeometry(stepWidth, staircaseHeight, stepDepth); 
+
+                const stepMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 }); // Brown color for the steps 
+
+                const step = new THREE.Mesh(stepGeometry, stepMaterial); 
+
+  
+
+                // Position each step 
+
+                step.position.y = (i * staircaseHeight) + (staircaseHeight / 2); 
+
+                step.position.x = x; 
+
+                step.position.z = z - (i * stepDepth); 
+
+  
+
+                step.castShadow = true; // Allow the step to cast shadows 
+
+                staircaseGroup.add(step); 
+
+  
+
+                // Add the step's bounding box to the staircases array 
+
+                const box = new THREE.Box3().setFromObject(step); 
+
+                staircases.push(box); 
+
+            } 
+
+  
+
+            return staircaseGroup; 
+
+        } 
+
+  
+
+        // Randomly generate staircases 
+
+        function generateRandomStaircases(count) { 
+
+            for (let i = 0; i < count; i++) { 
+
+                const x = (Math.random() - 0.5) * 50; // Random x position 
+
+                const z = (Math.random() - 0.5) * 50; // Random z position 
+
+                const staircase = createStaircase(x, z); 
+
+                scene.add(staircase); 
+
+            } 
+
+        } 
+
+  
+
+        // Generate 10 random staircases 
+
+        generateRandomStaircases(10); 
+
+  
+
+        // Create a red rectangular prism to represent the avatar 
+
+        const avatarGeometry = new THREE.BoxGeometry(0.5, 1.6, 0.5); // Size of the avatar 
+
+        const avatarMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 }); // Red color 
+
+        const avatar = new THREE.Mesh(avatarGeometry, avatarMaterial); 
+
+        avatar.position.y = 0.8; // Position the avatar above the ground 
+
+        scene.add(avatar); 
+
+  
+
+        // Add lighting 
+
+        const light = new THREE.DirectionalLight(0xffffff, 1); // White directional light 
+
+        light.position.set(5, 10, 5); // Position the light 
+
+        light.castShadow = true; // Allow the light to cast shadows 
+
+        scene.add(light); 
+
+  
+
+        // Add ambient light 
+
+        const ambientLight = new THREE.AmbientLight(0x404040); // Soft white light 
+
+        scene.add(ambientLight); 
+
+  
+
+        // Movement variables 
+
+        const moveSpeed = 0.1; 
+
+        const jumpSpeed = 0.2; 
+
+        const gravity = -0.01; 
+
+        let isJumping = false; 
+
+        let velocityY = 0; 
+
+        const groundLevel = 0.8; // Y position of the ground 
+
+  
+
+        const keys = {}; 
+
+        let cameraAngle = 0; // Angle for camera rotation around the avatar 
+
+  
+
+        document.addEventListener('keydown', (event) => { 
+
+            keys[event.code] = true; 
+
+        }); 
+
+  
+
+        document.addEventListener('keyup', (event) => { 
+
+            keys[event.code] = false; 
+
+        }); 
+
+  
+
+        // Function to check for collisions 
+
+        function checkCollisions(newPosition) { 
+
+            const avatarBox = new THREE.Box3().setFromCenterAndSize( 
+
+                newPosition, 
+
+                new THREE.Vector3(0.5, 1.6, 0.5) // Adjust the size of the bounding box to match the avatar 
+
+            ); 
+
+  
+
+            for (const box of staircases) { 
+
+                if (avatarBox.intersectsBox(box)) { 
+
+                    return true; // Collision detected 
+
+                } 
+
+            } 
+
+            return false; // No collision 
+
+        } 
+
+  
+
+        // Animation loop 
+
+        function animate() { 
+
+            requestAnimationFrame(animate); 
+
+  
+
+            // Store the current position 
+
+            const currentPosition = avatar.position.clone(); 
+
+  
+
+            // Calculate forward and right directions based on camera rotation 
+
+            const forward = new THREE.Vector3(); 
+
+            const right = new THREE.Vector3(); 
+
+            camera.getWorldDirection(forward); 
+
+            forward.y = 0; // Ignore vertical direction 
+
+            forward.normalize(); 
+
+  
+
+            right.crossVectors(forward, new THREE.Vector3(0, 1, 0)); // Get right direction 
+
+  
+
+            // Basic movement logic 
+
+            if (keys['KeyW']) { 
+
+                avatar.position.add(forward.clone().multiplyScalar(moveSpeed)); // Move forward 
+
+            } 
+
+            if (keys['KeyS']) { 
+
+                avatar.position.add(forward.clone().multiplyScalar(-moveSpeed)); // Move backward 
+
+            } 
+
+            if (keys['KeyA']) { 
+
+                avatar.position.add(right.clone().multiplyScalar(-moveSpeed)); // Move left 
+
+            } 
+
+            if (keys['KeyD']) { 
+
+                avatar.position.add(right.clone().multiplyScalar(moveSpeed)); // Move right 
+
+            } 
+
+  
+
+            // Rotate the camera based on left/right key presses 
+
+            if (keys['ArrowLeft']) { 
+
+                cameraAngle -= 0.02; // Rotate left 
+
+            } 
+
+            if (keys['ArrowRight']) { 
+
+                cameraAngle += 0.02; // Rotate right 
+
+            } 
+
+  
+
+            // Check for collisions after movement 
+
+            if (checkCollisions(avatar.position)) { 
+
+                // If a collision is detected, revert to the previous position 
+
+                avatar.position.copy(currentPosition); 
+
+            } 
+
+  
+
+            // Jumping logic 
+
+            if (keys['Space'] && !isJumping) { 
+
+                isJumping = true; 
+
+                velocityY = jumpSpeed; 
+
+            } 
+
+  
+
+            // Apply gravity 
+
+            if (isJumping) { 
+
+                avatar.position.y += velocityY; 
+
+                velocityY += gravity; 
+
+  
+
+                // Check if the player has landed 
+
+                if (avatar.position.y <= groundLevel) { 
+
+                    avatar.position.y = groundLevel; 
+
+                    isJumping = false; 
+
+                    velocityY = 0; 
+
+                } 
+
+            } else { 
+
+                // Ensure the avatar is at ground level when not jumping 
+
+                avatar.position.y = groundLevel; 
+
+            } 
+
+  
+
+            // Update the camera position to follow the avatar 
+
+            const cameraDistance = 3; // Distance from the avatar 
+
+            camera.position.x = avatar.position.x + cameraDistance * Math.sin(cameraAngle); 
+
+            camera.position.z = avatar.position.z + cameraDistance * Math.cos(cameraAngle); 
+
+            camera.position.y = avatar.position.y + 1.5; // Height above the avatar 
+
+            camera.lookAt(avatar.position); // Make the camera look at the avatar 
+
+  
+
+            renderer.render(scene, camera); 
+
+        } 
+
+  
+
+        animate(); 
+
+    </script> 
+
+</body> 
+
+</html> 

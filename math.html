@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stimulating Geometric Shape</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        canvas {
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #00ff8880;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="shapeCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('shapeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size to window size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth * 0.9;
+            canvas.height = window.innerHeight * 0.8;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let rotation = 0;
+        let hue = 0;
+        let scale = 1;
+        let scaleDirection = 1;
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Center of canvas
+            const centerX = canvas.width/2;
+            const centerY = canvas.height/2;
+            
+            // Create hexagonal path
+            ctx.beginPath();
+            for(let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI / 3) + rotation;
+                const radius = 100 * scale;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                if(i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+
+            // Create gradient
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 200);
+            gradient.addColorStop(0, `hsl(${hue}, 100%, 50%)`);
+            gradient.addColorStop(1, `hsl(${hue + 60}, 100%, 30%)`);
+
+            // Draw shape
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Animation updates
+            rotation += 0.02;
+            hue = (hue + 0.5) % 360;
+            scale += 0.005 * scaleDirection;
+            if(scale > 1.2 || scale < 0.8) scaleDirection *= -1;
+
+            requestAnimationFrame(draw);
+        }
+
+        // Add mouse interaction
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Map mouse position to rotation speed
+            rotation += (mouseX - canvas.width/2) * 0.0001;
+            scale = 0.8 + (mouseY/canvas.height) * 0.4;
+        });
+
+        // Start animation
+        draw();
+    </script>
+</body>
+</html>

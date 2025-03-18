@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fortnite - 2D Version</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+        }
+        
+        #gameArea {
+            width: 800px;
+            height: 600px;
+            background-color: #2a2a2a;
+            margin: 0 auto;
+            position: relative;
+            border: 2px solid #00ff00;
+        }
+        
+        #player {
+            width: 30px;
+            height: 30px;
+            background-color: #00ff00;
+            position: absolute;
+            left: 380px;
+            top: 280px;
+            transition: all 0.1s;
+        }
+        
+        .enemy {
+            width: 20px;
+            height: 20px;
+            background-color: #ff0000;
+            position: absolute;
+            transition: all 0.1s;
+        }
+        
+        .bullet {
+            width: 5px;
+            height: 5px;
+            background-color: #00ffff;
+            position: absolute;
+            border-radius: 50%;
+        }
+        
+        #score {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: #00ff00;
+            font-size: 20px;
+            z-index: 1;
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: #00ff00;
+            font-size: 14px;
+            z-index: 1;
+        }
+        
+        .build-block {
+            width: 30px;
+            height: 30px;
+            background-color: #333;
+            position: absolute;
+            border: 1px solid #00ff00;
+        }
+        
+        #crosshair {
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            pointer-events: none;
+        }
+        
+        .crosshair-line {
+            width: 10px;
+            height: 1px;
+            background-color: #00ff00;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="controls">
+        Use arrow keys to move<br>
+        Click to shoot<br>
+        Press B to build<br>
+        Press Space to start
+    </div>
+    <div id="gameArea">
+        <div id="player"></div>
+        <div id="crosshair">
+            <div class="crosshair-line" style="left: 5px; top: 10px;"></div>
+            <div class="crosshair-line" style="top: 5px; left: 10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameArea = document.getElementById('gameArea');
+        const scoreElement = document.getElementById('score');
+        const crosshair = document.getElementById('crosshair');
+        
+        let isGameRunning = false;
+        let score = 0;
+        let bullets = [];
+        let enemies = [];
+        let blocks = [];
+        let playerX = 380;
+        let playerY = 280;
+        let playerDirection = 0;
+        let lastBulletTime = 0;
+        
+        function startGame() {
+            isGameRunning = true;
+            gameLoop();
+            spawnEnemies();
+        }
+        
+        function gameLoop() {
+            if (!isGameRunning) return;
+            
+            // Update player position
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            
+            // Update bullets
+            bullets.forEach((bullet, index) => {
+                bullet.x += Math.cos(playerDirection) * 5;
+                bullet.y += Math.sin(playerDirection) * 5;
+                bullet.element.style.left = bullet.x + 'px';
+                bullet.element.style.top = bullet.y + 'px';
+                
+                if (bullet.x < 0 || bullet.x > 800 || bullet.y < 0 || bullet.y > 600) {
+                    bullet.element.remove();
+                    bullets.splice(index, 1);
+                }
+            });
+            
+            // Update enemies
+            enemies.forEach((enemy, index) => {
+                const ex = parseFloat(enemy.element.style.left);
+                const ey = parseFloat(enemy.element.style.top);
+                
+                enemy.element.style.left = ex + (Math.cos(enemy.angle) * 0.5) + 'px';
+                enemy.element.style.top = ey + (Math.sin(enemy.angle) * 0.5) + 'px';
+                
+                // Check collision with bullets
+                bullets.forEach((bullet, bulletIndex) => {
+                    if (Math.hypot(ex - bullet.x, ey - bullet.y) < 10) {
+                        enemy.element.remove();
+                        enemies.splice(index, 1);
+                        score += 10;
+                        scoreElement.textContent = `Score: ${score}`;
+                        bullets.splice(bulletIndex, 1);
+                    }
+                });
+            });
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function spawnEnemies() {
+            if (Math.random() < 0.02) {
+                const enemy = document.createElement('div');
+                enemy.className = 'enemy';
+                enemy.style.left = Math.random() * 800 + 'px';
+                enemy.style.top = Math.random() * 600 + 'px';
+                gameArea.appendChild(enemy);
+                
+                enemies.push({
+                    element: enemy,
+                    angle: Math.random() * Math.PI * 2
+                });
+            }
+            setTimeout(spawnEnemies, 1000);
+        }
+        
+        function shoot() {
+            if (Date.now() - lastBulletTime < 200) return;
+            
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = playerX + 'px';
+            bullet.style.top = playerY + 'px';
+            gameArea.appendChild(bullet);
+            
+            bullets.push({
+                element: bullet,
+                x: playerX,
+                y: playerY,
+                direction: playerDirection
+            });
+            
+            lastBulletTime = Date.now();
+        }
+        
+        function buildBlock(e) {
+            const rect = gameArea.getBoundingClientRect();
+            const x = e.clientX - rect.left - 15;
+            const y = e.clientY - rect.top - 15;
+            
+            const block = document.createElement('div');
+            block.className = 'build-block';
+            block.style.left = x + 'px';
+            block.style.top = y + 'px';
+            gameArea.appendChild(block);
+            
+            blocks.push(block);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            const speed = 5;
+            
+            if (e.key === 'ArrowLeft') playerX -= speed;
+            if (e.key === 'ArrowRight') playerX += speed;
+            if (e.key === 'ArrowUp') playerY -= speed;
+            if (e.key === 'ArrowDown') playerY += speed;
+            if (e.key === ' ' && !isGameRunning) startGame();
+            if (e.key === 'b' && !e.shiftKey) buildBlock(e);
+            
+            // Update player direction based on mouse position
+            const rect = gameArea.getBoundingClientRect();
+            const dx = e.clientX - rect.left - playerX;
+            const dy = e.clientY - rect.top - playerY;
+            playerDirection = Math.atan2(dy, dx);
+        });
+        
+        document.addEventListener('click', shoot);
+        document.addEventListener('mousemove', (e) => {
+            const rect = gameArea.getBoundingClientRect();
+            const dx = e.clientX - rect.left - playerX;
+            const dy = e.clientY - rect.top - playerY;
+            playerDirection = Math.atan2(dy, dx);
+        });
+    </script>
+</body>
+</html>
