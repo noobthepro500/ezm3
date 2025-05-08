@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zyth Minecraft Server Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: #eaeaea;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #121212 0%, #252525 100%);
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 800px;
+            padding: 2rem;
+            background-color: rgba(30, 30, 30, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #4ecca3;
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(78, 204, 163, 0.3);
+        }
+        
+        .server-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+        }
+        
+        .server-icon {
+            width: 128px;
+            height: 128px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status {
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            width: 100%;
+            animation: pulse 2s infinite;
+        }
+        
+        .online {
+            background-color: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+            border: 1px solid rgba(78, 204, 163, 0.5);
+        }
+        
+        .offline {
+            background-color: rgba(255, 82, 82, 0.2);
+            color: #ff5252;
+            border: 1px solid rgba(255, 82, 82, 0.5);
+        }
+        
+        .details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        
+        .detail-card {
+            background-color: rgba(50, 50, 50, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .detail-title {
+            font-size: 0.9rem;
+            color: #aaaaaa;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-value {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        
+        .player-count {
+            font-size: 1.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .loading {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #aaaaaa;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            border-top-color: #4ecca3;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(78, 204, 163, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(78, 204, 163, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(78, 204, 163, 0);
+            }
+        }
+        
+        .footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #888888;
+        }
+        
+        .refresh-button {
+            display: block;
+            margin: 2rem auto 0;
+            padding: 0.75rem 1.5rem;
+            background-color: #4ecca3;
+            color: #121212;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(78, 204, 163, 0.3);
+        }
+        
+        .refresh-button:hover {
+            background-color: #3db999;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(78, 204, 163, 0.4);
+        }
+        
+        .refresh-button:active {
+            transform: translateY(0);
+        }
+        
+        .last-updated {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888888;
+        }
+        
+        .maintenance-message {
+            color: #ff9800;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: rgba(255, 152, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 152, 0, 0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .status {
+                font-size: 1.2rem;
+            }
+            
+            .player-count {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zyth Minecraft Server Status</h1>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Checking server status...</p>
+        </div>
+        
+        <div id="server-info" class="server-info" style="display: none;">
+            <img id="server-icon" class="server-icon" src="" alt="Server Icon">
+            <div id="status-indicator" class="status">Checking status...</div>
+            
+            <div id="player-count" class="player-count"></div>
+            
+            <div id="maintenance-message" class="maintenance-message" style="display: none;">
+                Zyth is in maintenance
+            </div>
+            
+            <div id="details" class="details">
+                <div class="detail-card">
+                    <div class="detail-title">VERSION</div>
+                    <div id="version" class="detail-value">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-title">LATENCY</div>
+                    <div id="latency" class="detail-value">-</div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-title">SERVER DOMAIN</div>
+                    <div id="hostname" class="detail-value" style="font-size: 0.9rem; word-break: break-all;">-</div>
+                </div>
+            </div>
+            
+            <button id="refresh-button" class="refresh-button">Refresh Status</button>
+            <div id="last-updated" class="last-updated"></div>
+        </div>
+        
+        <div class="footer">
+            &copy; 2023 Zyth Minecraft Server | Data from EU MC-API
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://eu.mc-api.net/v3/server/ping/mc.zyth.me';
+        const loadingElement = document.getElementById('loading');
+        const serverInfoElement = document.getElementById('server-info');
+        const serverIconElement = document.getElementById('server-icon');
+        const statusIndicatorElement = document.getElementById('status-indicator');
+        const playerCountElement = document.getElementById('player-count');
+        const maintenanceMessageElement = document.getElementById('maintenance-message');
+        const versionElement = document.getElementById('version');
+        const latencyElement = document.getElementById('latency');
+        const hostnameElement = document.getElementById('hostname');
+        const refreshButtonElement = document.getElementById('refresh-button');
+        const lastUpdatedElement = document.getElementById('last-updated');
+        
+        // Default icon in case the server doesn't provide one
+        const DEFAULT_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFKElEQVR4XuWbXYhVVRTHf2vGptQZ8yHTPiYrJUxSKiWiIgilh4pIoQdJ6NGgqIyKepAoCnoQX4qgghLrIZJEoz5Io4GiKLSPB4PJPiDTyckZx75m3HtY556z1zn77DP33Jm5Z905L3Ous/f+r/9ee6211157Qc3XeDl50XTF64aDwWxgJjAXuBaYAVwFTAPOBSZVXSS0/A/gFHACGAaOAIeB/cA+YG/4d7jiPi5VFgGzgAVV++KwT8ZrUiYAujwCvALMNxicV+xL4CHgOx+5+VIAfAy86KNMgxjfAkv+DwA+B8qWbqUlVtsnQEUDVgGP5fX2wHZvAvUB+AXITlqD5+J7i38B2A7Msun5nOL/BC4E/qoK4HLgcFWBBsq/D6z2BTAH+LkBSvvs4kVgtQ8AG4HHfVavUQyZAK3xAWAPcL3BGkWF9gA3AX+7aoBYXmtAEdhpKbCrqAJcDvxQJOoSyG4Fbla5wLVA0WjuvQJB1CpyErisFoBLAA3eirilyvG6C8JDwOs2ABYCX9mUaGHZt4BFugCIm/l3C0NYZKQ+v51FPAn8ZQLwOPBakdQtJrsceMcE4AvgLou2bVV0I7DeZPbXA9vayjT3ZJYAPc4l0HeSPHYNAPEhZVsAAE+W0QR25i6BNgdRA4CNJgAHgOuKrLKI7OgEqGQfpQwn6YPADc4ocJ9kqeXPXc2oY4AWAnFGTJ9VbXeMyJxhANCITbDTQbTbTF07ARsArQliGi/xMaAxTWADIDuBxgJQNydoBdDdmGCIpb4EbTFBG4B+4IEgM0TrGBNEAdDQ1JYTdPoBAV2t9PgcoQ6A1j0lWGEJo71BVBCAtwGpANfLU9wv814RywMlZW4FBEDiAlcAk4GbpUyvP7vQtxL4xGKV3cAcoPiTGzYAWkRMDU2GrVOt0oeq/qirq7cC0GQQdCxgeQWaQN0A9A/IHqDu6xIJDUm5qjcXgD5JcywrPBSaIwBaBeYA+A9IBz7hAwA3FAGQnk5pAFMCUdLsA5vZafmpLgDpMgGzwuZt5YKQPAmCcPTdDUCvbHpeGbPyfXrpEGRsBkI5H7tUO4C4MQPRC8yq0rxvEHQKMunWr/vGv15+ow+WoqZrAeNcAH31yQ3HA98OYMQGoFKOTpqg1I4zLJGZlK5Xc17YKtAMUKnUq90E9ZS5iZmYTzGjuQB0W3eTAGMSzwNPWFLnTglGLJDZGbouYw5gALA1HMZwXr95fODZcLRNy4sNQOoP8njoLNNnqDk2pXUCk6/iCKHNv3jdGxzZ1sQqsNGlrQ3AGPe73LPKnwT2ATfW0YQlGH06VAYsvcDvnXf3UoZXA0/7ADgd7PUefjMlFAiZL1+xKX4lcDDpv00ARu5wC\/c0RL+1ORrYFAoWqQNKCTUPsFWe3gRO67oBQOxiJzTAKqeACc4eYESBG4A4OdlbgxPq3DZ5BZglL\/cF0L2KRYbGkmdL6+Io7VKWV2FtFZOb\/TFMUBSaDcSSHxlDccWJ+EoJXR+ATwFxSBFYnXV0Pwxk5vp8AIT\/oGI+UiSpHsTTpBXvmA8AKaVZIT5ykkUADMeOBhVvwI+Qy8qnnSCddRs3DIDl+iUww9VhA+WPBfcSdI6xSheYHmcXGh4GtifO5Ljcm895UUJ0dG52pwbUc2lRE0S23+LUgHgu0PFwlXsBl9nHf6F0mjQJTwMtdpxRiJTVnZ79AOwA3gP2APuAw8DRoMlIcB7Z9+2PwVdDVFxckMylwDXAFcFp1NiB0vNh2X8BiZorXO1\/KH0AAAAASUVORK5CYII=';
+        
+        // Function to check server status
+        async function checkServerStatus() {
+            try {
+                loadingElement.style.display = 'block';
+                serverInfoElement.style.display = 'none';
+                
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // Update last checked time
+                const now = new Date();
+                lastUpdatedElement.textContent = `Last updated: ${now.toLocaleString()}`;
+                
+                // Display server information
+                loadingElement.style.display = 'none';
+                serverInfoElement.style.display = 'flex';
+                
+                // Set server icon if available
+                if (data.favicon) {
+                    serverIconElement.src = data.favicon;
+                } else {
+                    serverIconElement.src = DEFAULT_ICON;
+                }
+                
+                // Check if server is online
+                if (data.online) {
+                    statusIndicatorElement.textContent = 'Server is Online';
+                    statusIndicatorElement.className = 'status online';
+                    
+                    // Check player count
+                    const playerOnline = data.players?.online || 0;
+                    const playerMax = data.players?.max || 0;
+                    
+                    if (playerOnline === 0 && playerMax === 0) {
+                        maintenanceMessageElement.style.display = 'block';
+                        playerCountElement.textContent = '0/0 Players';
+                    } else {
+                        maintenanceMessageElement.style.display = 'none';
+                        playerCountElement.textContent = `${playerOnline}/${playerMax} Players`;
+                    }
+                    
+                    // Set version info
+                    versionElement.textContent = data.version?.name || 'Unknown';
+                    
+                    // Set latency info
+                    latencyElement.textContent = `${data.ping || '?'} ms`;
+                    
+                    // Set hostname
+                    hostnameElement.textContent = 'mc.zyth.me';
+                } else {
+                    // Server is offline
+                    statusIndicatorElement.textContent = 'Server is Offline';
+                    statusIndicatorElement.className = 'status offline';
+                    maintenanceMessageElement.style.display = 'block';
+                    playerCountElement.textContent = '0/0 Players';
+                    versionElement.textContent = 'Unknown';
+                    latencyElement.textContent = 'N/A';
+                    hostnameElement.textContent = 'mc.zyth.me';
+                }
+            } catch (error) {
+                console.error('Error fetching server status:', error);
+                
+                // Show error state
+                loadingElement.style.display = 'none';
+                serverInfoElement.style.display = 'flex';
+                
+                serverIconElement.src = DEFAULT_ICON;
+                statusIndicatorElement.textContent = 'Error Checking Server';
+                statusIndicatorElement.className = 'status offline';
+                maintenanceMessageElement.style.display = 'block';
+                playerCountElement.textContent = 'Unable to retrieve player count';
+                versionElement.textContent = 'Unknown';
+                latencyElement.textContent = 'N/A';
+                hostnameElement.textContent = 'mc.zyth.me';
+                
+                const now = new Date();
+                lastUpdatedElement.textContent = `Last tried: ${now.toLocaleString()} (failed)`;
+            }
+        }
+        
+        // Check server status when page loads
+        document.addEventListener('DOMContentLoaded', checkServerStatus);
+        
+        // Add refresh button functionality
+        refreshButtonElement.addEventListener('click', checkServerStatus);
+        
+        // Auto-refresh every 5 minutes (300,000 milliseconds)
+        setInterval(checkServerStatus, 300000);
+    </script>
+</body>
+</html>
