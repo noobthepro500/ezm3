@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card API Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"></script>
+    <style>
+        body {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00bcd4;
+        }
+        
+        label {
+            color: #ecf0f1;
+            font-size: 18px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        input, select {
+            background-color: #192a3a;
+            border: none;
+            color: #ecf0f1;
+            font-size: 18px;
+            padding: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 3px 0 #00bcd4;
+        }
+        
+        button {
+            background-color: #192a3a;
+            border: none;
+            color: #ecf0f1;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        
+        button:hover {
+            background-color: #00bcd4;
+        }
+        
+        iframe {
+            background-color: #192a3a;
+            border: none;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 800px;
+            height: 50vh;
+            min-height: 400px;
+        }
+        
+        .code-output {
+            background-color: #192a3a;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-width: 800px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .copy-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Card API Generator</h1>
+        
+        <div class="form-group">
+            <label for="urlInput">Enter URL:</label>
+            <input type="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=OUHVRWdVQCI" value="https://www.youtube.com/watch?v=OUHVRWdVQCI">
+        </div>
+        
+        <button onclick="generateCard()">Generate Card</button>
+        
+        <iframe id="cardApiIframe" style="display: none;"></iframe>
+        
+        <div id="codeOutput" class="code-output" style="display: none;">
+            <div id="generatedCode"></div>
+            <button class="copy-btn" onclick="copyToClipboard()">Copy Code</button>
+        </div>
+    </div>
+
+    <script>
+        let currentIframeCode = '';
+        
+        function generateCard() {
+            const url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                alert('Please enter a valid URL');
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                alert('Please enter a valid URL (must include http:// or https://)');
+                return;
+            }
+            
+            // Construct the iframe URL without adUrl parameter
+            const iframeUrl = `https://p.oceansaver.in/api/card2/?url=${encodeURIComponent(url)}`;
+            
+            // Generate the iframe code
+            const iframeCode = `<iframe id="cardApiIframe" scrolling="no" width="100%" height="400px" allowtransparency="true" style="border: none;" src="${iframeUrl}"></iframe>
+<!-- Put the Library in your <head> tag -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/4.3.9/iframeResizer.min.js"><\/script>
+<!-- Put the resizer code after the <iframe> tag -->
+<script>
+    iFrameResize({ log: false }, '#cardApiIframe');
+<\/script>`;
+            
+            // Update the iframe
+            const iframe = document.getElementById('cardApiIframe');
+            iframe.onload = function() {
+                console.log('Iframe loaded successfully');
+                // Initialize iframe resizer after iframe loads
+                if (window.iFrameResize) {
+                    try {
+                        iFrameResize({ 
+                            log: false,
+                            checkOrigin: false,
+                            heightCalculationMethod: 'lowestElement'
+                        }, '#cardApiIframe');
+                    } catch (e) {
+                        console.log('Iframe resizer initialization failed:', e);
+                    }
+                }
+            };
+            
+            iframe.onerror = function() {
+                console.error('Failed to load iframe');
+                alert('Failed to load the card. Please check the URL and try again.');
+            };
+            
+            iframe.src = iframeUrl;
+            iframe.style.display = 'block';
+            
+            // Show the generated code
+            document.getElementById('generatedCode').textContent = iframeCode;
+            document.getElementById('codeOutput').style.display = 'block';
+            
+            currentIframeCode = iframeCode;
+        }
+        
+        function copyToClipboard() {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(currentIframeCode).then(() => {
+                    alert('Code copied to clipboard!');
+                }).catch(err => {
+                    fallbackCopy();
+                });
+            } else {
+                fallbackCopy();
+            }
+        }
+        
+        function fallbackCopy() {
+            const textArea = document.createElement('textarea');
+            textArea.value = currentIframeCode;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Code copied to clipboard!');
+            } catch (err) {
+                alert('Failed to copy code. Please copy manually.');
+            }
+            document.body.removeChild(textArea);
+        }
+        
+        // Generate initial card on page load
+        window.onload = function() {
+            generateCard();
+        };
+    </script>
+</body>
+</html>
