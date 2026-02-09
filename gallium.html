@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallium Clicker</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f5f5f5;
+    }
+
+    #clickerContainer,
+    #shopContainer {
+      display: inline-block;
+      margin: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    img {
+      width: 150px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="clickerContainer">
+    <h1>Add gallium to the pile</h1>
+    <p>Lbs of gallium: <span id="money">0</span></p>
+    <img
+      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlIe9snYFt3-kFXHsEwaL4bz1V67eFBi8vcQ&s"
+      alt="Gallium"
+      onclick="clickCookie()"
+    >
+  </div>
+
+  <div id="shopContainer">
+    <h2>Shop</h2>
+
+    <p>Lbs per Click: <span id="mpc">1</span></p>
+    <button onclick="upgradeMPC()">
+      Upgrade LBSPC (Cost: <span id="mpcCost">10</span> lbs)
+    </button>
+
+    <p>Lbs per Second: <span id="mps">0</span></p>
+    <button onclick="buyMPS()">
+      Buy LBPS (Cost: <span id="mpsCost">50</span> lbs)
+    </button>
+  </div>
+
+  <script>
+    let money = 0;
+    let mpc = 1;
+    let mpcCost = 10;
+    let mps = 0;
+    let mpsCost = 50;
+    let mpsIntervalStarted = false;
+
+    const moneyDisplay = document.getElementById("money");
+    const mpcDisplay = document.getElementById("mpc");
+    const mpcCostDisplay = document.getElementById("mpcCost");
+    const mpsDisplay = document.getElementById("mps");
+    const mpsCostDisplay = document.getElementById("mpsCost");
+
+    function updateDisplay() {
+      moneyDisplay.textContent = money;
+      mpcDisplay.textContent = mpc;
+      mpcCostDisplay.textContent = mpcCost;
+      mpsDisplay.textContent = mps;
+      mpsCostDisplay.textContent = mpsCost;
+    }
+
+    function clickCookie() {
+      money += mpc;
+      updateDisplay();
+    }
+
+    function upgradeMPC() {
+      if (money >= mpcCost) {
+        money -= mpcCost;
+        mpc++;
+        mpcCost *= 2;
+        updateDisplay();
+      } else {
+        alert("Not enough gallium!");
+      }
+    }
+
+    function buyMPS() {
+      if (money >= mpsCost) {
+        money -= mpsCost;
+        mps++;
+        mpsCost *= 2;
+
+        if (!mpsIntervalStarted) {
+          mpsIntervalStarted = true;
+          setInterval(() => {
+            money += mps;
+            updateDisplay();
+          }, 1000);
+        }
+
+        updateDisplay();
+      } else {
+        alert("Not enough gallium!");
+      }
+    }
+
+    updateDisplay();
+  </script>
+
+</body>
+</html>
